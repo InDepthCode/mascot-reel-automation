@@ -1,11 +1,14 @@
 ---
 name: mascot-video
-description: Build a talking mascot from the user's image(s) and turn a script into a lip-synced vertical video with this repo. Use when the user wants to create a mascot, add art or a voice to one, fix its mouth position, or make a mascot video from text or audio.
+description: Build a talking mascot from the user's picture as-is (one pose, engine-drawn mouth and blinks) and turn a script into a lip-synced vertical video with this repo. Use when the user wants to create a mascot, add art or a voice to one, fix its mouth position, or make a mascot video from text or audio. For a full redraw with poses from reference images use draw-mascot.
 ---
 
 # Mascot video
 
 ## New mascot from a picture
+
+If `ANTHROPIC_API_KEY` is set, `python make.py create <name> --image <path>` does steps 1-4 itself; then read the
+model sheet and go to step 5. Inside Claude Code without a key, do it by hand:
 
 1. `python make.py new <name> --from-image <path>` (lowercase-dash name).
 2. `python make.py check <name>`, then read `out/<name>/check/grid.png`. Find the mouth centre and both eye centres

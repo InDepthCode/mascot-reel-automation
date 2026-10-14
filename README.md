@@ -18,14 +18,18 @@ Fork the repo, add your mascot's art and a voice, and you have your own AI influ
 ## How it works
 
 ```
-script ──► voice (macOS say / ElevenLabs / Voicebox / your mic)
-              │
-              ▼
-        lip sync (Rhubarb: sounds ──► 9 mouth shapes) + word timings (Whisper: captions + trigger words)
-              │
-              ▼
-        animator: every frame stacks  [ears/tail] + [pose] + [eyes] + [mouth]  ──► mp4
+ your picture ──► Claude finds the face ──► mascots/<name>/  (mascot.py + sprites/)
+                                                   │
+ script ──► voice (say / ElevenLabs / Voicebox / mic)
+                     │
+                     ▼
+            lip sync (Rhubarb: sounds ──► 9 mouth shapes) + word timings (Whisper)
+                     │
+                     ▼
+            animator: every frame stacks [ears/tail] + [pose] + [eyes] + [mouth] + captions ──► mp4
 ```
+
+The full diagram, and an image prompt for making a poster of it, are in **[docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md)**.
 
 A mascot is just a folder: `mascots/<name>/mascot.py` (settings) + `mascots/<name>/sprites/*.png` (art).
 
@@ -33,7 +37,7 @@ A mascot is just a folder: `mascots/<name>/mascot.py` (settings) + `mascots/<nam
 
 ## Quick start (10 minutes)
 
-You need **Python 3.9+** and **ffmpeg**.
+You need **Python 3.10+** and **ffmpeg**.
 
 ```bash
 # 1. get the code
@@ -44,6 +48,8 @@ cd claude-codes-influencers
 brew install ffmpeg                 # Windows: winget install ffmpeg   Linux: sudo apt install ffmpeg
 pip install -r requirements.txt
 bash scripts/install_rhubarb.sh     # the lip sync engine (free, ~20 MB)
+
+cp .env.example .env               # paste ANTHROPIC_API_KEY (for `create`) and ELEVENLABS_API_KEY (optional)
 
 # 3. make a video with one of the example mascots
 python make.py video sparky --text "Hey hey! I'm Sparky. Comment the word mascot and I'll send it over!"
@@ -60,7 +66,43 @@ Try the others: `python make.py video kev --script examples/script.txt` and `pyt
 
 ## Make your own mascot
 
-### Step 1: start from the template
+There are three ways in. Pick one.
+
+### Fastest: upload a picture, Claude rigs it (2 minutes)
+
+```bash
+python make.py create blobby --image ~/Desktop/blobby.png
+```
+
+Any character picture works: a drawing on a plain background, a transparent PNG, a screenshot of your art.
+`create` cuts the character out, puts it on a sprite canvas, then **Claude looks at it on a pixel grid** and finds
+the mouth, eyes, skin and outline colours. It renders the talking mouths and blinks on your character, **checks its
+own work** on a close-up (up to 3 rounds, fixing anything that's off), and writes `mascots/blobby/mascot.py` with
+a matching backdrop, caption colours and a voice description. Then:
+
+```bash
+python make.py video blobby --text "Hey! I was a drawing two minutes ago."
+```
+
+Needs `ANTHROPIC_API_KEY` in `.env` (four Claude calls per mascot, usually well under $1). Busy photo background? Remove it first
+(macOS: right-click the image -> Quick Actions -> Remove Background) or `pip install rembg`.
+
+### Best quality: Claude Code draws it from your references
+
+Open this folder in [Claude Code](https://claude.com/claude-code):
+
+```bash
+python make.py new blobby --refs ~/Desktop/blobby-front.png ~/Desktop/blobby-side.png
+```
+
+Then tell Claude: *"draw blobby from its refs"*. The `draw-mascot` skill has Claude study the references and write
+`mascots/blobby/draw.py`, which paints the whole character in code: 7 poses, 9 hand-quality mouths, 5 eye states and
+swinging ears or tails. It compares the model sheet to your references and keeps fixing until they match. That's how
+Sparky, Kev and Anime were made.
+
+### By hand: your own art, step by step
+
+#### Step 1: start from the template
 
 ```bash
 python make.py new blobby --from-image ~/Desktop/blobby.png
@@ -69,7 +111,7 @@ python make.py new blobby --from-image ~/Desktop/blobby.png
 This creates `mascots/blobby/` with a settings file and copies your picture in as `sprites/pose_idle.png`.
 Use a PNG with a **transparent background**, roughly 1000-1500 px tall.
 
-### Step 2: tell it where the mouth is
+#### Step 2: tell it where the mouth is
 
 ```bash
 python make.py check blobby
@@ -89,7 +131,7 @@ EYES = dict(left=(470, 600), right=(730, 600), size=(52, 64), lid="#F2C6A0")   #
 
 Run `check` again and open `out/blobby/check/model_sheet.png` to see all 9 mouth shapes on your character.
 
-### Step 3: give it a voice
+### Give it a voice
 
 Pick one in `mascots/blobby/mascot.py`:
 
@@ -109,7 +151,7 @@ python make.py save-voice blobby <generated_voice_id>
 # paste the VOICE line it prints into mascot.py
 ```
 
-### Step 4: make videos
+### Make videos
 
 ```bash
 python make.py video blobby --text "Your script here."
@@ -117,7 +159,7 @@ python make.py video blobby --script my_script.txt
 python make.py video blobby --audio recorded_line.wav --text "the same words, for better lip sync"
 ```
 
-### Step 5: level up the art
+### Level up the art
 
 One picture gets you talking. For a mascot that really performs, add more layers to `sprites/`:
 poses (`pose_excited`, `pose_point`, `pose_wave_a`/`pose_wave_b`, `pose_shrug`, `pose_think`), hand-drawn mouths
@@ -148,7 +190,8 @@ or a tail. **[mascots/_template/README.md](mascots/_template/README.md) lists ev
 
 ```bash
 python make.py list                                   # your mascots
-python make.py new NAME [--from-image pic.png]        # start a mascot
+python make.py create NAME --image pic.png            # picture -> talking mascot (Claude rigs it)
+python make.py new NAME [--from-image pic.png] [--refs a.png b.png]   # blank mascot / refs for Claude Code
 python make.py check NAME                             # validate art, model sheet, coordinate grid
 python make.py draw NAME                              # re-run a code-drawn mascot's draw.py
 python make.py video NAME --text "..."                # the whole pipeline
@@ -161,8 +204,9 @@ python make.py sheet NAME out/NAME/<take> 0.5 2 4     # stills from a take
 ## Using it with Claude Code
 
 Open the folder in [Claude Code](https://claude.com/claude-code) and just ask: *"make a mascot from ~/Desktop/blobby.png
-and have it say this script"*. The repo ships a `CLAUDE.md` and a skill in `.claude/skills/` that walk Claude through
-the same steps (it reads the grid image to find the mouth for you).
+and have it say this script"* or *"draw a mascot from these references"*. The repo ships a `CLAUDE.md` and two skills
+in `.claude/skills/` (`mascot-video` and `draw-mascot`) that walk Claude through every step, and Claude Code needs no
+API key because it uses your Claude plan.
 
 ## The three examples
 

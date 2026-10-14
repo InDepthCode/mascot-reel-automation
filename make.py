@@ -2,7 +2,8 @@
 """Claude Codes Influencers: talking mascot videos from a script.
 
   python make.py list                                   your mascots
-  python make.py new NAME [--from-image pic.png]        start a mascot from the template
+  python make.py create NAME --image pic.png            any character picture -> talking mascot (Claude finds the face)
+  python make.py new NAME [--from-image pic.png] [--refs a.png b.png]   blank mascot (refs/ = for Claude Code to draw)
   python make.py draw NAME                              re-run a code-drawn mascot's draw.py
   python make.py check NAME                             validate the art + model sheet + coordinate grid
   python make.py video NAME --text "Hey! ..."           voice -> lip sync -> mp4 (the whole thing)
@@ -67,6 +68,12 @@ def cmd_new(args):
     cfg = os.path.join(dst, "mascot.py")
     s = open(cfg).read().replace('NAME = "My Mascot"   # CHANGE ME', f'NAME = "{args.name.replace("-", " ").title()}"')
     open(cfg, "w").write(s)
+    if args.refs:
+        os.makedirs(os.path.join(dst, "refs"), exist_ok=True)
+        for r in args.refs:
+            shutil.copy(r, os.path.join(dst, "refs", os.path.basename(r)))
+        print(f"  copied {len(args.refs)} reference image(s) -> mascots/{args.name}/refs/ "
+              "(ask Claude Code: \"draw this mascot from its refs\")")
     if args.from_image:
         from PIL import Image
         im = Image.open(args.from_image).convert("RGBA")
@@ -77,6 +84,17 @@ def cmd_new(args):
     print(f"  2. python make.py check {args.name}     (read the mouth position off the grid)")
     print(f"  3. set MOUTH in mascots/{args.name}/mascot.py, then check again")
     print(f'  4. python make.py video {args.name} --text "Hey! I am alive."')
+
+
+def cmd_create(args):
+    from engine import autorig
+    folder = autorig.create(args.name, args.image, rounds=args.rounds)
+    from engine import check
+    out = os.path.join(OUT, args.name, "check")
+    check.run(args.name, out)
+    print(f"\nCreated {folder}")
+    print(f"  look at   {out}/model_sheet.png")
+    print(f'  then      python make.py video {args.name} --text "Hey! I am alive."')
 
 
 def cmd_draw(args):
@@ -160,7 +178,11 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list").set_defaults(fn=cmd_list)
-    s = sub.add_parser("new"); s.add_argument("name"); s.add_argument("--from-image"); s.set_defaults(fn=cmd_new)
+    s = sub.add_parser("new"); s.add_argument("name"); s.add_argument("--from-image"); s.add_argument("--refs", nargs="*")
+    s.set_defaults(fn=cmd_new)
+    s = sub.add_parser("create"); s.add_argument("name"); s.add_argument("--image", required=True)
+    s.add_argument("--rounds", type=int, default=3, help="how many times Claude re-checks the mouth placement")
+    s.set_defaults(fn=cmd_create)
     s = sub.add_parser("draw"); s.add_argument("name"); s.set_defaults(fn=cmd_draw)
     s = sub.add_parser("check"); s.add_argument("name"); s.set_defaults(fn=cmd_check)
     for n, fn in (("voice", cmd_voice), ("video", cmd_video)):

@@ -2,6 +2,9 @@
 pillow>=9.0
 numpy>=1.21
 
+# For `make.py create` (Claude finds the face). Python 3.10+
+anthropic>=1.0
+
 # Recommended: exact word timings for captions and trigger words (downloads a ~460 MB model on first run)
 openai-whisper
 

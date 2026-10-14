@@ -7,9 +7,15 @@ Talking-mascot video builder. A mascot = `mascots/<name>/mascot.py` (settings) +
 
 `engine/voice.py` (script -> wav) -> `engine/lipsync.py` (wav -> take.json: Rhubarb mouth cues, Whisper words,
 loudness) -> `engine/animate.py` (take + sprites -> 1080x1920 mp4, multiprocessing + ffmpeg).
-`engine/pack.py` loads settings with defaults; `engine/procedural.py` draws mouths/blinks for one-picture mascots;
+`engine/autorig.py` (`make.py create`) turns any character picture into a mascot: cut-out, canvas, Claude vision
+finds mouth/eyes/colours on a grid, then reviews rendered mouths for up to 3 rounds. `engine/pack.py` loads settings with defaults; `engine/procedural.py` draws mouths/blinks for one-picture mascots;
 `engine/bake.py` turns a code-drawn rig into a sprite pack; `engine/check.py` validates art and writes the model sheet
 and coordinate grid.
+
+## Creating mascots from images
+
+- Picture as-is, one pose: `python make.py create NAME --image pic.png` (or do its job by hand: the `mascot-video` skill).
+- Full redraw from references with every pose and mouth: the `draw-mascot` skill.
 
 ## Rules
 
