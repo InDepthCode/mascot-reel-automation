@@ -1,0 +1,9 @@
+# Required
+pillow>=9.0
+numpy>=1.21
+
+# Recommended: exact word timings for captions and trigger words (downloads a ~460 MB model on first run)
+openai-whisper
+
+# Optional: only to re-draw Sparky's art (mascots/sparky/draw.py)
+# skia-python
