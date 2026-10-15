@@ -57,8 +57,9 @@ python make.py video sparky --text "Hey hey! I'm Sparky. Comment the word mascot
 
 Your video is in `out/sparky/<time>-<first-words>/sparky.mp4`.
 
-> The examples talk with the free macOS `say` voice so they work with zero setup. On Windows or Linux,
-> pass a recording with `--audio voice.wav`, or use ElevenLabs (step 3 below).
+> The examples talk with the free macOS `say` voice so they work with zero setup. On Windows or Linux
+> it falls back to the free `edge` voice (`pip install edge-tts`, needs internet), or pass a recording with
+> `--audio voice.wav`, or use ElevenLabs (step 3 below).
 
 Try the others: `python make.py video kev --script examples/script.txt` and `python make.py video anime --script examples/script.txt`.
 
@@ -138,6 +139,7 @@ Pick one in `mascots/blobby/mascot.py`:
 | Voice | Setup | Setting |
 |---|---|---|
 | **macOS say** | none | `VOICE = {"provider": "say", "voice": "Samantha", "pitch": 1.2}` (`say -v '?'` lists voices) |
+| **Edge** (free, any OS) | `pip install edge-tts`, needs internet | `VOICE = {"provider": "edge", "voice": "en-US-AriaNeural", "pitch": 1.2}` |
 | **ElevenLabs** (best) | `cp .env.example .env`, paste your API key | `VOICE = {"provider": "elevenlabs", "voice_id": "..."}` |
 | **Voicebox** (free, local) | install [Voicebox](https://github.com/jamiepine/voicebox), clone or design a voice, export the line as wav | `VOICE = {"provider": "file"}` then `--audio line.wav` |
 | **Your own mic** | record the line | `VOICE = {"provider": "file"}` then `--audio line.wav` |
@@ -179,7 +181,7 @@ or a tail. **[mascots/_template/README.md](mascots/_template/README.md) lists ev
 | `SCALE`, `PLACE` | On-screen size, and where `FEET` lands in the 1080x1920 frame |
 | `MOUTH`, `EYES` | Built-in mouths and blinking for one-picture mascots |
 | `PARTS` | Ears, tails, antennae that sway and flick (`dict(sprite=, pivot=, behind=)`) |
-| `VOICE` | `say`, `elevenlabs` or `file` |
+| `VOICE` | `say`, `edge`, `elevenlabs` or `file` |
 | `STYLE` | Backdrop gradient, glow, caption keyword colour, caption position |
 | `KEYWORDS` | Words highlighted in the captions |
 | `TRIGGERS` | `"word": (pose, eyes, seconds, punch_in)`: what the mascot does when it says that word |

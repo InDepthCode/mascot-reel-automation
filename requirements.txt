@@ -5,6 +5,9 @@ numpy>=1.21
 # For `make.py create` (Claude finds the face). Python 3.10+
 anthropic>=1.0
 
+# Free neural voices on any OS (the `edge` voice provider, and the automatic fallback where macOS `say` is missing)
+edge-tts
+
 # Recommended: exact word timings for captions and trigger words (downloads a ~460 MB model on first run)
 openai-whisper
 

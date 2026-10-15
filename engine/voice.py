@@ -2,6 +2,8 @@
 
 Providers:
   say         macOS built-in voices. Zero setup, good for testing.     VOICE = {"provider": "say", "voice": "Samantha"}
+  edge        Microsoft Edge neural voices, free, any OS, needs internet.  VOICE = {"provider": "edge", "voice": "en-US-AriaNeural"}
+              (also the automatic fallback when "say" is set but this machine has no `say`)
   elevenlabs  Best quality. Needs ELEVENLABS_API_KEY in .env.         VOICE = {"provider": "elevenlabs", "voice_id": "..."}
   file        Bring your own recording (or a Voicebox export).         python make.py video NAME --audio take.wav
 
@@ -26,6 +28,7 @@ from typing import List
 from .pack import ROOT
 
 API = "https://api.elevenlabs.io/v1"
+EDGE_VOICE = "en-US-AriaNeural"   # other good ones: en-US-ChristopherNeural, en-US-GuyNeural, en-GB-SoniaNeural
 
 
 def load_env():
@@ -63,7 +66,12 @@ def speak(text: str, voice: dict, out_path: str) -> str:
     """Writes the line to out_path (any extension ffmpeg understands) and returns the path."""
     provider = voice.get("provider", "say")
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
-    if provider == "elevenlabs":
+    if provider == "say" and not shutil.which("say"):   # not macOS: fall back to edge (macOS voice names don't carry over)
+        print("  no macOS `say` here, using the edge voice instead (set VOICE provider to 'edge' to silence this)")
+        provider, voice = "edge", {k: v for k, v in voice.items() if k == "pitch"}
+    if provider == "edge":
+        _edge(text, voice, out_path)
+    elif provider == "elevenlabs":
         vid = voice.get("voice_id") or sys.exit("VOICE needs a voice_id for elevenlabs (see mascot.py)")
         body = {"text": text, "model_id": voice.get("model", "eleven_multilingual_v2"),
                 "voice_settings": voice.get("settings", {"stability": 0.45, "similarity_boost": 0.8, "style": 0.35})}
@@ -73,8 +81,6 @@ def speak(text: str, voice: dict, out_path: str) -> str:
         _convert(tmp, out_path)
         os.remove(tmp)
     elif provider == "say":
-        if not shutil.which("say"):
-            sys.exit("The 'say' voice only exists on macOS. Use elevenlabs, or record a file and pass --audio.")
         tmp = out_path + ".aiff"
         cmd = ["say", "-o", tmp]
         if voice.get("voice"):
@@ -87,8 +93,24 @@ def speak(text: str, voice: dict, out_path: str) -> str:
     elif provider in ("file", "voicebox"):
         sys.exit("This mascot's voice comes from a file: pass it with --audio path/to/voice.wav")
     else:
-        sys.exit(f"Unknown voice provider '{provider}' (use say, elevenlabs or file)")
+        sys.exit(f"Unknown voice provider '{provider}' (use say, edge, elevenlabs or file)")
     return out_path
+
+
+def _edge(text: str, voice: dict, out_path: str):
+    try:
+        import edge_tts
+    except ImportError:
+        sys.exit("The edge voice needs edge-tts: pip install edge-tts")
+    import asyncio
+    kw = {"rate": voice["rate"]} if voice.get("rate") else {}   # edge rate is a string like "+10%"
+    tmp = out_path + ".mp3"
+    try:
+        asyncio.run(edge_tts.Communicate(text, voice.get("voice", EDGE_VOICE), **kw).save(tmp))
+    except Exception as e:
+        sys.exit(f"edge-tts failed (it needs internet access): {e}")
+    _convert(tmp, out_path, pitch=voice.get("pitch", 1.0))
+    os.remove(tmp)
 
 
 def _convert(src: str, dst: str, pitch: float = 1.0):
