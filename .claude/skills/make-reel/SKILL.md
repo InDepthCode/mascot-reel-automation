@@ -13,7 +13,7 @@ The mascot is a ~360 px rounded tile that glides between spots on the screen. Ru
 - **Script** (the exact words). If the user only gives a topic, write it with the `reel-script` skill rules first
   (hook under 12 words, proof by 3-10 s, comment prompt at 25-30 s, share CTA). Do not invent facts; flag claims to verify.
 - Optional: Instagram handle (only used if you add a CTA line), photos to show. Never block on these.
-- Voice: the mascot's `VOICE` (clone needs `HF_TOKEN` in `.env`). If it fails on quota, ask for a recording and pass `--audio`.
+- Voice: the mascot's `VOICE` (clone needs `HF_TOKEN` in `.env`). On a quota stop (a 3 min script is ~10 parts and the free quota is small) finished parts are cached: rerun the same `take` command after the quota resets, or ask for a recording and pass `--audio`. The scene design is keyed to phrase numbers, so a stand-in voice can be used to design/preview first.
 
 ## 1. Take (voice + word timings, no video yet)
 ```bash

@@ -140,7 +140,7 @@ Pick one in `mascots/blobby/mascot.py`:
 |---|---|---|
 | **macOS say** | none | `VOICE = {"provider": "say", "voice": "Samantha", "pitch": 1.2}` (`say -v '?'` lists voices) |
 | **Edge** (free, any OS) | `pip install edge-tts`, needs internet | `VOICE = {"provider": "edge", "voice": "en-US-AriaNeural", "pitch": 1.2}` |
-| **Clone** (your voice, free) | a 10-15 s `voice_ref.wav` + `voice_ref.txt`, free Hugging Face token in `.env` (`HF_TOKEN`) | `VOICE = {"provider": "clone", "ref_audio": "mascots/NAME/voice_ref.wav"}` (runs on a Hugging Face Space, not your CPU) |
+| **Clone** (your voice, free) | a 10-15 s `voice_ref.wav` + `voice_ref.txt`, free Hugging Face token in `.env` (`HF_TOKEN`) | `VOICE = {"provider": "clone", "ref_audio": "mascots/NAME/voice_ref.wav"}` (runs on a Hugging Face Space, not your CPU). Long scripts: every finished part is cached in `out/voice-cache`, so if the free GPU quota runs out, run the same command again after it resets and it continues |
 | **ElevenLabs** (best) | `cp .env.example .env`, paste your API key | `VOICE = {"provider": "elevenlabs", "voice_id": "..."}` |
 | **Voicebox** (free, local) | install [Voicebox](https://github.com/jamiepine/voicebox), clone or design a voice, export the line as wav | `VOICE = {"provider": "file"}` then `--audio line.wav` |
 | **Your own mic** | record the line | `VOICE = {"provider": "file"}` then `--audio line.wav` |

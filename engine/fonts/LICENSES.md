@@ -4,3 +4,5 @@
 - **Oswald** (labels) by Vernon Adams and contributors, SIL Open Font License 1.1. https://fonts.google.com/specimen/Oswald
 
 Both are redistributed unmodified from Google Fonts.
+- **Anton** (headlines) by Vernon Adams, SIL Open Font License 1.1. https://fonts.google.com/specimen/Anton
+- **DejaVu Sans Mono** (terminal) by Bitstream / DejaVu contributors, free licence (Bitstream Vera derivative). https://dejavu-fonts.github.io

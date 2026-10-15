@@ -199,6 +199,21 @@ def cmd_render(args):
     print(f"\nDone -> {out}")
 
 
+def cmd_look(args):
+    """Look A reel (black terminal style): --stills T1 T2 ... previews frames, otherwise renders the video."""
+    import json
+    from engine import looka
+    spec = json.load(open(args.spec))
+    if args.stills:
+        out = os.path.join(args.take, "look_stills.png")
+        looka.stills(args.name, args.take, spec, [float(t) for t in args.stills], out)
+        print("->", out)
+        return
+    out = args.out or os.path.join(args.take, f"{args.name}-look.mp4")
+    looka.render(args.name, args.take, spec, out)
+    print(f"\nDone -> {out}")
+
+
 def cmd_cover(args):
     from engine import animate
     for p in animate.cover(args.name, args.take, args.text, args.at):
@@ -263,6 +278,9 @@ def main():
     s.set_defaults(fn=cmd_reel)
     s = sub.add_parser("render"); s.add_argument("name"); s.add_argument("take"); s.add_argument("--cards")
     s.set_defaults(fn=cmd_render)
+    s = sub.add_parser("look"); s.add_argument("name"); s.add_argument("take"); s.add_argument("spec")
+    s.add_argument("--stills", nargs="+", help="preview these seconds as stills instead of rendering"); s.add_argument("--out")
+    s.set_defaults(fn=cmd_look)
     s = sub.add_parser("cover"); s.add_argument("name"); s.add_argument("take"); s.add_argument("text")
     s.add_argument("--at", type=float, help="second to grab the face from (default: most expressive moment)")
     s.set_defaults(fn=cmd_cover)

@@ -19,6 +19,7 @@ ElevenLabs Voice Design (make a brand-new voice from a description):
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import re
@@ -35,6 +36,7 @@ CLONE_SPACES = ("ResembleAI/Chatterbox", "abidlabs/E2-F5-TTS")   # tried in orde
 # Broadcast polish for cloned speech: rumble cut, warmth + presence, gentle compression, -16 LUFS.
 MASTER = ("highpass=f=80,equalizer=f=150:t=q:w=1:g=1.5,equalizer=f=3500:t=q:w=1:g=2.5,"
           "acompressor=threshold=-18dB:ratio=3:attack=15:release=200:makeup=2,loudnorm=I=-16:TP=-1.5:LRA=11")
+CACHE = os.path.join(ROOT, "out", "voice-cache")   # finished clone parts: a long script can be finished on another day
 EDGE_VOICE = "en-US-AriaNeural"   # other good ones: en-US-ChristopherNeural, en-US-GuyNeural, en-GB-SoniaNeural
 
 
@@ -117,20 +119,38 @@ def _chunks(text: str, limit: int = 280) -> List[str]:
     return out + [cur] if cur else out
 
 
+def _cached(key: str, make) -> str:
+    """Returns the cached wav for key, or runs make() (-> a wav path) and keeps a copy: finished parts survive a quota stop."""
+    f = os.path.join(CACHE, key + ".wav")
+    if not os.path.exists(f):
+        src = make()
+        os.makedirs(CACHE, exist_ok=True)
+        shutil.copy(src, f)
+    return f
+
+
+def _quota_hit(e: Exception) -> bool:
+    return "ZeroGPU" in str(e) and "limit" in str(e).lower()
+
+
 def _clone_space(space: str, chunks: List[str], ref: str, ref_text: str, timeout: float = 240) -> List[str]:
     from gradio_client import Client, handle_file
     c = Client(space, token=os.environ.get("HF_TOKEN") or None, verbose=False, httpx_kwargs={"timeout": 60})
     wavs = []
+    who = hashlib.sha1(space.encode() + open(ref, "rb").read()).hexdigest()[:10]
     for t in chunks:
-        if space == "ResembleAI/Chatterbox":
-            r = c.submit(text_input=t, audio_prompt_path_input=handle_file(ref), exaggeration_input=0.5,
-                          temperature_input=0.8, seed_num_input=0, cfgw_input=0.5, vad_trim_input=False,
-                          api_name="/generate_tts_audio").result(timeout=timeout)
-        else:   # an E2/F5-TTS Space: needs the words spoken in the reference clip too
-            r = c.submit(ref_audio_orig=handle_file(ref), ref_text=ref_text, gen_text=t, exp_name="F5-TTS",
-                         remove_silence=True, cross_fade_duration=0.15, api_name="/infer").result(timeout=timeout)[0]
-        wavs.append(r)
+        key = f"{who}-{hashlib.sha1(t.encode()).hexdigest()[:16]}"
+        wavs.append(_cached(key, lambda t=t: _clone_part(c, handle_file, space, t, ref, ref_text, timeout)))
     return wavs
+
+
+def _clone_part(c, handle_file, space: str, t: str, ref: str, ref_text: str, timeout: float) -> str:
+    if space == "ResembleAI/Chatterbox":
+        return c.submit(text_input=t, audio_prompt_path_input=handle_file(ref), exaggeration_input=0.5, temperature_input=0.8,
+                        seed_num_input=0, cfgw_input=0.5, vad_trim_input=False, api_name="/generate_tts_audio").result(timeout=timeout)
+    # an E2/F5-TTS Space: needs the words spoken in the reference clip too
+    return c.submit(ref_audio_orig=handle_file(ref), ref_text=ref_text, gen_text=t, exp_name="F5-TTS", remove_silence=True,
+                    cross_fade_duration=0.15, api_name="/infer").result(timeout=timeout)[0]
 
 
 def _clone(text: str, voice: dict, out_path: str):
@@ -152,6 +172,10 @@ def _clone(text: str, voice: dict, out_path: str):
             wavs = _clone_space(space, chunks, ref, ref_text)
             break
         except Exception as e:
+            if _quota_hit(e):   # the other Space is CPU-only and too slow to be a fallback: stop and keep what is done
+                done = len([f for f in os.listdir(CACHE)]) if os.path.isdir(CACHE) else 0
+                sys.exit(f"{space}: {str(e)[:260]}\n  Finished parts are saved ({done} in out/voice-cache): run the same command again "
+                         "when your free Hugging Face quota resets and it continues where it stopped.")
             errors.append(f"{space}: {type(e).__name__}: {str(e)[:200]}")
             print(f"  {errors[-1]}\n  trying the next one...")
     else:
