@@ -140,6 +140,7 @@ Pick one in `mascots/blobby/mascot.py`:
 |---|---|---|
 | **macOS say** | none | `VOICE = {"provider": "say", "voice": "Samantha", "pitch": 1.2}` (`say -v '?'` lists voices) |
 | **Edge** (free, any OS) | `pip install edge-tts`, needs internet | `VOICE = {"provider": "edge", "voice": "en-US-AriaNeural", "pitch": 1.2}` |
+| **Clone** (your voice, free) | a 10-15 s `voice_ref.wav` + `voice_ref.txt`, free Hugging Face token in `.env` (`HF_TOKEN`) | `VOICE = {"provider": "clone", "ref_audio": "mascots/NAME/voice_ref.wav"}` (runs on a Hugging Face Space, not your CPU) |
 | **ElevenLabs** (best) | `cp .env.example .env`, paste your API key | `VOICE = {"provider": "elevenlabs", "voice_id": "..."}` |
 | **Voicebox** (free, local) | install [Voicebox](https://github.com/jamiepine/voicebox), clone or design a voice, export the line as wav | `VOICE = {"provider": "file"}` then `--audio line.wav` |
 | **Your own mic** | record the line | `VOICE = {"provider": "file"}` then `--audio line.wav` |
@@ -160,6 +161,21 @@ python make.py video blobby --text "Your script here."
 python make.py video blobby --script my_script.txt
 python make.py video blobby --audio recorded_line.wav --text "the same words, for better lip sync"
 ```
+
+### Reels: info cards, cover, loudness
+
+```bash
+python make.py video blobby --script s.txt --cards cards.json   # cards timed to spoken words (see examples/cards.example.json)
+python make.py sheet blobby out/blobby/<take> 3 9 15            # preview stills, cards included
+python make.py render blobby out/blobby/<take> --cards c.json   # change the cards, re-render, no new voice
+python make.py cover blobby out/blobby/<take> "JAVA TOO SLOW?"  # 1080x1920 cover + cover_grid.png (the 3:4 grid crop)
+```
+
+A card is `{"at": "SnapStart", "dur": 2.4, "title": "...", "sub": "...", "image": "proof.png"}`: `at` is a spoken word (or
+seconds). Cards appear in frosted glass under the mascot, clear of Instagram's buttons (`STYLE["card_box"]` moves them).
+Captions use your script's spelling with Whisper's timings, and the final mix is normalised to -14 LUFS for Instagram.
+Rendering uses 3 processes and 2 ffmpeg threads so the laptop stays usable: `WORKERS=8 python make.py ...` for speed.
+The `reel-script` skill writes the script, cards and caption for you from a topic.
 
 ### Level up the art
 
@@ -201,6 +217,8 @@ python make.py voice NAME --text "..."                # just the voice
 python make.py design-voice NAME "description"        # ElevenLabs Voice Design
 python make.py save-voice NAME GENERATED_VOICE_ID
 python make.py sheet NAME out/NAME/<take> 0.5 2 4     # stills from a take
+python make.py render NAME out/NAME/<take> [--cards c.json]   # re-render a take
+python make.py cover NAME out/NAME/<take> "TEXT"      # Instagram cover
 ```
 
 ## Using it with Claude Code

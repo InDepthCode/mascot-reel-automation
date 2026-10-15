@@ -4,6 +4,8 @@ Providers:
   say         macOS built-in voices. Zero setup, good for testing.     VOICE = {"provider": "say", "voice": "Samantha"}
   edge        Microsoft Edge neural voices, free, any OS, needs internet.  VOICE = {"provider": "edge", "voice": "en-US-AriaNeural"}
               (also the automatic fallback when "say" is set but this machine has no `say`)
+  clone       Your own voice from a reference clip, free, on a Hugging Face Space (no local GPU/CPU load).
+              VOICE = {"provider": "clone", "ref_audio": "mascots/NAME/voice_ref.wav"}  + voice_ref.txt = its transcript
   elevenlabs  Best quality. Needs ELEVENLABS_API_KEY in .env.         VOICE = {"provider": "elevenlabs", "voice_id": "..."}
   file        Bring your own recording (or a Voicebox export).         python make.py video NAME --audio take.wav
 
@@ -19,6 +21,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -28,6 +31,10 @@ from typing import List
 from .pack import ROOT
 
 API = "https://api.elevenlabs.io/v1"
+CLONE_SPACES = ("ResembleAI/Chatterbox", "abidlabs/E2-F5-TTS")   # tried in order, first one that answers wins
+# Broadcast polish for cloned speech: rumble cut, warmth + presence, gentle compression, -16 LUFS.
+MASTER = ("highpass=f=80,equalizer=f=150:t=q:w=1:g=1.5,equalizer=f=3500:t=q:w=1:g=2.5,"
+          "acompressor=threshold=-18dB:ratio=3:attack=15:release=200:makeup=2,loudnorm=I=-16:TP=-1.5:LRA=11")
 EDGE_VOICE = "en-US-AriaNeural"   # other good ones: en-US-ChristopherNeural, en-US-GuyNeural, en-GB-SoniaNeural
 
 
@@ -69,7 +76,9 @@ def speak(text: str, voice: dict, out_path: str) -> str:
     if provider == "say" and not shutil.which("say"):   # not macOS: fall back to edge (macOS voice names don't carry over)
         print("  no macOS `say` here, using the edge voice instead (set VOICE provider to 'edge' to silence this)")
         provider, voice = "edge", {k: v for k, v in voice.items() if k == "pitch"}
-    if provider == "edge":
+    if provider == "clone":
+        _clone(text, voice, out_path)
+    elif provider == "edge":
         _edge(text, voice, out_path)
     elif provider == "elevenlabs":
         vid = voice.get("voice_id") or sys.exit("VOICE needs a voice_id for elevenlabs (see mascot.py)")
@@ -93,8 +102,65 @@ def speak(text: str, voice: dict, out_path: str) -> str:
     elif provider in ("file", "voicebox"):
         sys.exit("This mascot's voice comes from a file: pass it with --audio path/to/voice.wav")
     else:
-        sys.exit(f"Unknown voice provider '{provider}' (use say, edge, elevenlabs or file)")
+        sys.exit(f"Unknown voice provider '{provider}' (use say, edge, clone, elevenlabs or file)")
     return out_path
+
+
+def _chunks(text: str, limit: int = 280) -> List[str]:
+    """Sentences packed into pieces the Spaces accept (Chatterbox caps a request at ~300 characters)."""
+    out, cur = [], ""
+    for sent in re.split(r"(?<=[.!?])\s+", text.strip()):
+        if cur and len(cur) + 1 + len(sent) > limit:
+            out.append(cur)
+            cur = ""
+        cur = f"{cur} {sent}".strip()
+    return out + [cur] if cur else out
+
+
+def _clone_space(space: str, chunks: List[str], ref: str, ref_text: str, timeout: float = 240) -> List[str]:
+    from gradio_client import Client, handle_file
+    c = Client(space, token=os.environ.get("HF_TOKEN") or None, verbose=False, httpx_kwargs={"timeout": 60})
+    wavs = []
+    for t in chunks:
+        if space == "ResembleAI/Chatterbox":
+            r = c.submit(text_input=t, audio_prompt_path_input=handle_file(ref), exaggeration_input=0.5,
+                          temperature_input=0.8, seed_num_input=0, cfgw_input=0.5, vad_trim_input=False,
+                          api_name="/generate_tts_audio").result(timeout=timeout)
+        else:   # an E2/F5-TTS Space: needs the words spoken in the reference clip too
+            r = c.submit(ref_audio_orig=handle_file(ref), ref_text=ref_text, gen_text=t, exp_name="F5-TTS",
+                         remove_silence=True, cross_fade_duration=0.15, api_name="/infer").result(timeout=timeout)[0]
+        wavs.append(r)
+    return wavs
+
+
+def _clone(text: str, voice: dict, out_path: str):
+    try:
+        import gradio_client  # noqa: F401
+    except ImportError:
+        sys.exit("The clone voice needs gradio_client: pip install gradio_client")
+    load_env()
+    ref = voice.get("ref_audio") or sys.exit('VOICE needs ref_audio for clone, e.g. "mascots/NAME/voice_ref.wav"')
+    ref = ref if os.path.isabs(ref) else os.path.join(ROOT, ref)
+    if not os.path.exists(ref):
+        sys.exit(f"Reference clip not found: {ref}")
+    txt = os.path.splitext(ref)[0] + ".txt"
+    ref_text = voice.get("ref_text") or (open(txt).read().strip() if os.path.exists(txt) else "")
+    chunks, errors = _chunks(text), []
+    for space in voice.get("spaces", CLONE_SPACES):
+        try:
+            print(f"  cloning voice on {space} ({len(chunks)} part{'s' * (len(chunks) > 1)})...")
+            wavs = _clone_space(space, chunks, ref, ref_text)
+            break
+        except Exception as e:
+            errors.append(f"{space}: {type(e).__name__}: {str(e)[:200]}")
+            print(f"  {errors[-1]}\n  trying the next one...")
+    else:
+        sys.exit("Voice cloning failed on every Space (they are free and share GPU quota; try again later, or set HF_TOKEN "
+                 "in .env for more quota, or pass your own recording with --audio):\n  " + "\n  ".join(errors))
+    ins = [a for w in wavs for a in ("-i", w)]
+    graph = "".join(f"[{i}]" for i in range(len(wavs))) + f"concat=n={len(wavs)}:v=0:a=1,{MASTER}"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *ins, "-filter_complex", graph, "-ac", "1", "-ar", "44100",
+                    out_path], check=True)
 
 
 def _edge(text: str, voice: dict, out_path: str):

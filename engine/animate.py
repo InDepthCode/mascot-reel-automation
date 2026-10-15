@@ -60,6 +60,9 @@ class Scene:
         st = m.style
         self.cap_font = ImageFont.truetype(os.path.join(FONTS, "LuckiestGuy-Regular.ttf"), st["caption_size"])
         self.groups = self._groups(st["caption_words"])
+        top = min(int(m.place[1] - (m.feet[1] - m.face[1]) * self.k + 110), 1200)   # just under the chin
+        self.card_box = tuple(st["card_box"]) if st["card_box"] else (60, top, FW - 60, top + 340)
+        self.card_list = self._load_cards()
 
     # ── timing ──────────────────────────────────────────────────────────────
 
@@ -203,6 +206,98 @@ class Scene:
             d.text((x, st["caption_y"] + dy), w, font=self.cap_font, fill=col, stroke_width=7, stroke_fill=(0, 0, 0))
             x += wd
 
+    # ── info cards: title / stat / screenshot, frosted glass under the mascot ───
+    # cards.json in the take folder: [{"at": "SnapStart" | 4.5, "dur": 2.2, "title": "...", "sub": "...", "image": "path.png"}]
+
+    def _load_cards(self):
+        p = os.path.join(self.take_dir, "cards.json")
+        out = []
+        for c in json.load(open(p)) if os.path.exists(p) else []:
+            at = c["at"]
+            try:
+                t0 = float(at) if isinstance(at, (int, float)) else self.word_t(str(at), c.get("after", 0.0)) - 0.05
+            except KeyError:
+                heard = " ".join(w["word"] for w in self.words)
+                print(f"  card skipped: the word '{at}' is not in the take. Whisper heard: {heard}")
+                continue
+            img = None
+            if c.get("image"):
+                path = c["image"] if os.path.isabs(c["image"]) else os.path.join(pack.ROOT, c["image"])
+                if not os.path.exists(path):
+                    raise SystemExit(f"card image not found: {path}")
+                img = Image.open(path).convert("RGBA")
+            card = dict(t0=t0, t1=t0 + c.get("dur", 2.2), title=c.get("title", ""), sub=c.get("sub", ""), img=img)
+            card["layer"] = self._card_layer(card)
+            out.append(card)
+        return out
+
+    @staticmethod
+    def _wrap(d, text, font, max_w):
+        lines, cur = [], ""
+        for w in text.split():
+            t = f"{cur} {w}".strip()
+            if cur and d.textlength(t, font=font) > max_w:
+                lines.append(cur)
+                cur = w
+            else:
+                cur = t
+        return lines + [cur] if cur else lines
+
+    def _card_layer(self, c):
+        x0, y0, x1, y1 = self.card_box
+        w, h = x1 - x0, y1 - y0
+        lay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(lay)
+        font = lambda s: ImageFont.truetype(os.path.join(FONTS, "Oswald-Bold.ttf"), s)
+        pad, tx = 28, 28 + 30
+        d.rounded_rectangle((0, 0, w - 1, h - 1), 36, outline=(255, 255, 255, 90), width=3)
+        d.rounded_rectangle((pad, pad, pad + 10, h - pad), 5, fill=rgba(self.m.style["accent"]))
+        title, sub = c["title"], c["sub"]
+        label = 0
+        if c["img"]:                                            # screenshot / logo, with the title as a label under it
+            label = 84 if (title or sub) else 0
+            box = (w - pad - tx, h - 2 * pad - label)
+            im = c["img"].copy()
+            im.thumbnail(box, Image.LANCZOS)
+            m = Image.new("L", im.size, 0)
+            ImageDraw.Draw(m).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 18, fill=255)
+            lay.paste(im, (tx + (box[0] - im.width) // 2, pad), m)
+            title, sub = title or sub, ""
+        avail_h = h - 2 * pad - label - (64 if sub else 0)
+        max_w = w - tx - pad
+        for size in range(150 if not c["img"] else 54, 40, -4):   # biggest size that fits in <= 2 lines
+            f = font(size)
+            lines = self._wrap(d, title, f, max_w)
+            if len(lines) <= 2 and len(lines) * size * 1.12 <= avail_h and all(d.textlength(l, font=f) <= max_w for l in lines):
+                break
+        lh = int(size * 1.12)
+        block = len(lines) * lh + (64 if sub else 0)
+        y = h - pad - label + (label - lh) // 2 if c["img"] else pad + (h - 2 * pad - block) // 2
+        for l in lines:
+            d.text((tx, y), l, font=f, fill=(255, 255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0, 120))
+            y += lh
+        if sub:
+            d.text((tx, y + 14), sub, font=font(44), fill=(215, 220, 235, 255))
+        return lay
+
+    def cards(self, fr, t):
+        for c in self.card_list:
+            if not c["t0"] <= t < c["t1"] + 0.2:
+                continue
+            a_in = ease((t - c["t0"]) / 0.2)
+            a = min(a_in, 1 - ease((t - c["t1"]) / 0.2))
+            x0, y0, x1, y1 = self.card_box
+            w, h = x1 - x0, y1 - y0
+            y0 += int((1 - a_in) * 60)                          # slides up as it appears
+            glass = Image.blend(fr.crop((x0, y0, x1, y0 + h)).filter(ImageFilter.GaussianBlur(18)),
+                                Image.new("RGB", (w, h), (16, 20, 34)), 0.55)
+            mask = Image.new("L", (w, h), 0)
+            ImageDraw.Draw(mask).rounded_rectangle((0, 0, w - 1, h - 1), 36, fill=int(255 * a))
+            fr.paste(glass, (x0, y0), mask)
+            lay = c["layer"].copy()
+            lay.putalpha(lay.getchannel("A").point(lambda v: int(v * a)))
+            fr.paste(lay, (x0, y0), lay)
+
     # ── one frame ───────────────────────────────────────────────────────────
 
     def pose_mix(self, t):
@@ -254,7 +349,7 @@ class Scene:
         parts(False)
         return lay, start, punch
 
-    def frame(self, t):
+    def frame(self, t, overlays=True):
         lay, start, punch = self.character(t)
         e = self.env_smooth(t)
         pop = spring(t, start, amp=0.06, freq=2.6, damp=6.0)
@@ -278,7 +373,9 @@ class Scene:
             x0 = min(max(0, cx - cw / 2), FW - cw)
             y0 = min(max(0, cy - ch * 0.42), FH - ch)
             fr = fr.crop((int(x0), int(y0), int(x0 + cw), int(y0 + ch))).resize((FW, FH), Image.BICUBIC)
-        self.caption(fr, t)
+        if overlays:
+            self.caption(fr, t)
+            self.cards(fr, t)
         return fr
 
 
@@ -295,6 +392,20 @@ def _one(i):
     return _W["s"].frame(i / FPS).convert("RGB").tobytes()
 
 
+def loudnorm(audio: str, i=-14.0, tp=-1.5, lra=11.0) -> str:
+    """ffmpeg audio filter that lands the mix on Instagram's ~-14 LUFS. Two passes (measure, then apply the exact gain):
+    single-pass loudnorm drifts a full LU low on short clips."""
+    base = f"loudnorm=I={i}:TP={tp}:LRA={lra}"
+    try:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-i", audio, "-af", base + ":print_format=json", "-f", "null", "-"],
+                           capture_output=True, text=True, check=True)
+        m = json.loads(r.stderr[r.stderr.rindex("{"):r.stderr.rindex("}") + 1])
+        return (f"{base}:measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:"
+                f"measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true")
+    except Exception:
+        return base
+
+
 def render(mascot: str, take_dir: str, out: str, beats: Optional[list] = None, t0=0.0, t1=None) -> str:
     s = Scene(mascot, take_dir, beats)
     t1 = s.dur if t1 is None else t1
@@ -302,9 +413,9 @@ def render(mascot: str, take_dir: str, out: str, beats: Optional[list] = None, t
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{FW}x{FH}",
            "-r", str(FPS), "-i", "-", "-ss", f"{t0}", "-t", f"{t1 - t0}", "-i", s.audio,
            "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "medium", "-crf", "17",
-           "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", out]
+           "-threads", "2", "-pix_fmt", "yuv420p", "-af", loudnorm(s.audio), "-ar", "44100", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", out]
     ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    workers = max(1, min(int(os.environ.get("WORKERS", "0")) or (os.cpu_count() or 4), 8))
+    workers = max(1, min(int(os.environ.get("WORKERS", "0")) or 3, 8))   # 3 render processes by default so the laptop stays usable; WORKERS=8 to go faster
     with Pool(workers, initializer=_init, initargs=(mascot, take_dir, s.beats)) as pool:
         for k, buf in enumerate(pool.imap(_one, range(n0, n1), chunksize=8)):
             ff.stdin.write(buf)
@@ -326,3 +437,30 @@ def contact_sheet(mascot: str, take_dir: str, out: str, times: List[float]) -> s
         d.text((i * 360 + 10, 8), f"{t:.2f}s", fill=(200, 200, 200), font=font)
     im.save(out)
     return out
+
+
+def cover(mascot: str, take_dir: str, text: str, t: Optional[float] = None) -> List[str]:
+    """Instagram cover: 2-3 huge words over the mascot's best expression. Instagram's profile grid crops the middle 3:4
+    of the 9:16 frame (y 240..1680), so everything important sits inside that. Writes cover.png and cover_grid.png."""
+    s = Scene(mascot, take_dir)
+    if t is None:   # the loudest moment of the first 3 seconds = the most expressive mouth
+        lo, hi = int(0.3 * s.env_fps), int(3 * s.env_fps)
+        t = (lo + int(np.argmax(s.env_arr[lo:hi]))) / s.env_fps
+    fr = s.frame(t, overlays=False)
+    d = ImageDraw.Draw(fr)
+    for size in range(240, 90, -8):
+        f = ImageFont.truetype(os.path.join(FONTS, "LuckiestGuy-Regular.ttf"), size)
+        lines = Scene._wrap(d, text.upper(), f, FW - 140)
+        if len(lines) <= 3 and len(lines) * size * 1.05 <= 330:
+            break
+    y = 262 + (330 - len(lines) * size * 1.05) / 2
+    accent = rgba(s.m.style["accent"])[:3]
+    for i, l in enumerate(lines):
+        x = (FW - d.textlength(l, font=f)) / 2
+        d.text((x, y), l, font=f, fill=accent if i == len(lines) - 1 else (255, 255, 255), stroke_width=12, stroke_fill=(0, 0, 0))
+        y += size * 1.05
+    a, b = os.path.join(take_dir, "cover.png"), os.path.join(take_dir, "cover_grid.png")
+    fr.save(a)
+    fr.crop((0, 240, FW, 1680)).save(b)
+    print(f"  frame at {t:.2f}s")
+    return [a, b]

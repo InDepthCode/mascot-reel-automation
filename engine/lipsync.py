@@ -13,6 +13,7 @@ Word timings (for captions and trigger words), best first:
 """
 from __future__ import annotations
 
+import difflib
 import glob
 import json
 import os
@@ -60,14 +61,18 @@ def envelope(path: str) -> np.ndarray:
 
 # ── words ────────────────────────────────────────────────────────────────────
 
-def whisper_words(wav: str, prompt: str = "", model: str = "small.en") -> Optional[List[dict]]:
+def whisper_words(wav: str, prompt: str = "", model: str = "tiny.en") -> Optional[List[dict]]:
     try:
         import whisper   # openai-whisper
     except ImportError:
         return None
+    import torch
+    torch.set_num_threads(2)   # keeps the laptop responsive while Whisper runs
     print(f"  whisper ({model}) word timings...")
     m = whisper.load_model(model)
-    res = m.transcribe(wav, word_timestamps=True, initial_prompt=prompt or None, fp16=False)
+    # temperature 0 + no carry-over between segments: deterministic, and the small models stop truncating/hallucinating
+    res = m.transcribe(wav, word_timestamps=True, initial_prompt=prompt or None, fp16=False,
+                       temperature=0.0, condition_on_previous_text=False)
     out = []
     for seg in res["segments"]:
         for w in seg.get("words", []):
@@ -158,6 +163,43 @@ def energy_cues(env: np.ndarray) -> List[dict]:
 
 # ── take ─────────────────────────────────────────────────────────────────────
 
+def align_to_script(words: List[dict], script: str) -> List[dict]:
+    """The small Whisper model mishears and hallucinates ("Thank you." over silence). When the script is known, keep ITS
+    spelling and Whisper's timings: extra words Whisper invented are dropped, missed words are spread into the gap.
+    Returns None when the audio doesn't match the script (less than half the script words were heard)."""
+    norm = lambda w: re.sub(r"[^a-z0-9']", "", w.lower())
+    toks = [t for t in re.split(r"[\s\-\u2013\u2014]+", script.strip()) if norm(t)]
+    sm = difflib.SequenceMatcher(None, [norm(t) for t in toks], [norm(w["word"]) for w in words], autojunk=False)
+    out = [None] * len(toks)
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op == "equal":
+            for k in range(i2 - i1):
+                out[i1 + k] = (words[j1 + k]["start"], words[j1 + k]["end"])
+        elif op == "replace":   # e.g. "two hundred" heard as "200": share the heard span between the script words
+            a, b, n = words[j1]["start"], words[j2 - 1]["end"], i2 - i1
+            for k in range(n):
+                out[i1 + k] = (a + (b - a) * k / n, a + (b - a) * (k + 1) / n)
+    if not toks or sum(i2 - i1 for op, i1, i2, _, _ in sm.get_opcodes() if op == "equal") < 0.5 * len(toks):
+        return None
+    i = 0
+    while i < len(out):                       # script words Whisper missed: spread them over the gap before the next heard word
+        if out[i] is not None:
+            i += 1
+            continue
+        j = i
+        while j < len(out) and out[j] is None:
+            j += 1
+        n = j - i
+        lo = out[i - 1][1] if i else None
+        hi = out[j][0] if j < len(out) else None
+        lo = max(0.0, hi - 0.25 * n) if lo is None else lo
+        hi = lo + 0.25 * n if hi is None else max(hi, lo + 0.04 * n)
+        for k in range(n):
+            out[i + k] = (lo + (hi - lo) * k / n, lo + (hi - lo) * (k + 1) / n)
+        i = j
+    return [{"word": t, "start": round(s, 3), "end": round(e, 3)} for t, (s, e) in zip(toks, out)]
+
+
 def analyze(audio: str, script: str = "", out_dir: Optional[str] = None, use_whisper: bool = True) -> dict:
     out_dir = out_dir or os.path.dirname(os.path.abspath(audio))
     os.makedirs(out_dir, exist_ok=True)
@@ -165,8 +207,17 @@ def analyze(audio: str, script: str = "", out_dir: Optional[str] = None, use_whi
     if os.path.abspath(audio) != os.path.abspath(wav):
         to_wav(audio, wav)
     env = envelope(wav)
-    words = whisper_words(wav, script) if use_whisper else None
+    words = whisper_words(wav) if use_whisper else None   # no script as a prompt: a long prompt makes Whisper loop or truncate
     word_src = "whisper"
+    if words and script:
+        aligned = align_to_script(words, script)
+        if aligned is None:   # the tiny model sometimes loses the plot: one more try with a bigger one
+            aligned = align_to_script(whisper_words(wav, model="base.en") or [], script)
+        if aligned is None:
+            print("  Whisper could not match the script (wrong audio for this text?): spreading the script over the audio")
+            words, word_src = spread_words(script, env), "script"
+        else:
+            words = aligned
     if words is None:
         words, word_src = spread_words(script, env), "script"
     cues = rhubarb_cues(wav, script or " ".join(w["word"] for w in words))

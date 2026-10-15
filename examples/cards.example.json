@@ -1,0 +1,5 @@
+[
+  {"at": "Java",         "dur": 2.4, "title": "Java on Lambda", "sub": "too slow?"},
+  {"at": "SnapStart",    "dur": 2.6, "title": "AWS Lambda SnapStart"},
+  {"at": "milliseconds", "dur": 2.2, "title": "< 200 ms", "sub": "restore time"}
+]

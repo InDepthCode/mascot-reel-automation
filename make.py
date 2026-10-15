@@ -12,6 +12,9 @@
   python make.py design-voice NAME "voice description"  ElevenLabs Voice Design: 3 new voices to pick from
   python make.py save-voice NAME GENERATED_VOICE_ID     keep one, prints the voice_id for mascot.py
   python make.py sheet NAME TAKE_DIR 0.5 2 4.5          stills from a finished take, for quick checks
+  python make.py video NAME --script s.txt --cards cards.json   + title / stat / screenshot cards timed to words
+  python make.py render NAME TAKE_DIR [--cards c.json]  re-render a finished take (no new voice)
+  python make.py cover NAME TAKE_DIR "APP OR GAME?"     Instagram cover, grid-safe
 
 Everything lands in out/NAME/.
 """
@@ -140,12 +143,30 @@ def cmd_video(args):
         print("1/3 voice")
         args._dir = take_dir(args.name, slug(text))
         audio, d = cmd_voice(args, quiet=True)
+    if args.cards:
+        shutil.copy(args.cards, os.path.join(d, "cards.json"))
     print("2/3 lip sync")
     lipsync.analyze(audio, text, d, use_whisper=not args.no_whisper)
     print("3/3 render")
     out = os.path.join(d, f"{args.name}.mp4")
     animate.render(args.name, d, out)
     print(f"\nDone -> {out}")
+
+
+def cmd_render(args):
+    """Re-render a finished take (new cards, tweaked mascot) without redoing the voice."""
+    from engine import animate
+    if args.cards:
+        shutil.copy(args.cards, os.path.join(args.take, "cards.json"))
+    out = os.path.join(args.take, f"{args.name}.mp4")
+    animate.render(args.name, args.take, out)
+    print(f"\nDone -> {out}")
+
+
+def cmd_cover(args):
+    from engine import animate
+    for p in animate.cover(args.name, args.take, args.text, args.at):
+        print("->", p)
 
 
 def cmd_design_voice(args):
@@ -190,10 +211,16 @@ def main():
         if n == "video":
             s.add_argument("--audio", help="use this recording instead of generating a voice")
             s.add_argument("--no-whisper", action="store_true", help="skip Whisper word timings")
+            s.add_argument("--cards", help="cards.json: title / stat / screenshot cards timed to spoken words")
         s.set_defaults(fn=fn)
     s = sub.add_parser("design-voice"); s.add_argument("name"); s.add_argument("description"); s.add_argument("--text")
     s.set_defaults(fn=cmd_design_voice)
     s = sub.add_parser("save-voice"); s.add_argument("name"); s.add_argument("generated_voice_id"); s.set_defaults(fn=cmd_save_voice)
+    s = sub.add_parser("render"); s.add_argument("name"); s.add_argument("take"); s.add_argument("--cards")
+    s.set_defaults(fn=cmd_render)
+    s = sub.add_parser("cover"); s.add_argument("name"); s.add_argument("take"); s.add_argument("text")
+    s.add_argument("--at", type=float, help="second to grab the face from (default: most expressive moment)")
+    s.set_defaults(fn=cmd_cover)
     s = sub.add_parser("sheet"); s.add_argument("name"); s.add_argument("take"); s.add_argument("times", nargs="*")
     s.set_defaults(fn=cmd_sheet)
     a = p.parse_args()
