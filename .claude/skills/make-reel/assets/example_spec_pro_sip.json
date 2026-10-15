@@ -1,0 +1,363 @@
+{
+ "style": "pro",
+ "drift": 0.03,
+ "grain": 5,
+ "caption_size": 48,
+ "punch": [
+  [
+   "p2",
+   "p2.end"
+  ],
+  [
+   "p15",
+   "p15.end"
+  ],
+  [
+   "p26",
+   "p27.end"
+  ]
+ ],
+ "stage": [
+  {
+   "type": "rings",
+   "x": 430,
+   "y": 1095,
+   "radius": 300,
+   "values": [
+    1.28,
+    2.72,
+    4.35,
+    6.18,
+    8.25,
+    10.58,
+    13.2,
+    16.15,
+    19.48,
+    23.23,
+    27.46,
+    32.23,
+    37.59,
+    43.64,
+    50.46,
+    58.14,
+    66.79,
+    76.54,
+    87.53,
+    99.91
+   ],
+   "max": 99.91,
+   "at": "p4",
+   "until": "p23-0.3",
+   "anim": "none",
+   "major_every": 5,
+   "reveal": [
+    {
+     "upto": 5,
+     "at": "p7",
+     "dur": 1.6
+    },
+    {
+     "upto": 10,
+     "at": "p10",
+     "dur": 1.4
+    },
+    {
+     "upto": 15,
+     "at": "p12",
+     "dur": 1.4
+    },
+    {
+     "upto": 20,
+     "at": "p14",
+     "dur": 1.6
+    }
+   ],
+   "inner": {
+    "value": 24,
+    "at": "p17",
+    "color": "accent2"
+   },
+   "bands": [
+    {
+     "from": 16,
+     "to": 20,
+     "at": "p20",
+     "color": "accent",
+     "opacity": 0.85
+    },
+    {
+     "from": 1,
+     "to": 15,
+     "at": "p22",
+     "color": "dim",
+     "opacity": 0.55
+    }
+   ],
+   "callouts": [
+    {
+     "ring": 5,
+     "text": "₹8.2 lakh",
+     "sub": "5 years",
+     "angle": -55,
+     "at": "p9",
+     "until": "p11-0.2",
+     "size": 42
+    },
+    {
+     "ring": 10,
+     "text": "₹23 lakh",
+     "sub": "10 years",
+     "angle": -48,
+     "at": "p11",
+     "until": "p13-0.2",
+     "size": 42
+    },
+    {
+     "ring": 15,
+     "text": "₹50 lakh",
+     "sub": "15 years",
+     "angle": -42,
+     "at": "p13",
+     "until": "p15-0.2",
+     "size": 42
+    },
+    {
+     "ring": 20,
+     "text": "₹1 crore",
+     "sub": "20 years",
+     "angle": -38,
+     "at": "p15",
+     "until": "p18",
+     "size": 50,
+     "color": "accent"
+    },
+    {
+     "value": 24,
+     "text": "₹24 lakh",
+     "sub": "what you put in",
+     "angle": 28,
+     "at": "p17",
+     "until": "p18",
+     "size": 42,
+     "color": "accent2"
+    },
+    {
+     "ring": 18,
+     "text": "₹43 lakh",
+     "sub": "earned, last 5 years",
+     "angle": -34,
+     "at": "p20+0.3",
+     "until": "p23-0.3",
+     "size": 46,
+     "color": "accent"
+    },
+    {
+     "ring": 12,
+     "text": "₹32 lakh",
+     "sub": "earned, first 15 years",
+     "angle": 34,
+     "at": "p22+0.3",
+     "until": "p23-0.3",
+     "size": 42,
+     "color": "muted"
+    }
+   ],
+   "ghost_at": "p4"
+  }
+ ],
+ "scenes": [
+  {
+   "start": "start",
+   "elements": [
+    {
+     "type": "headline",
+     "lines": [
+      "What if you invested"
+     ],
+     "x": 96,
+     "y": 300,
+     "size": 76,
+     "at": "p0"
+    },
+    {
+     "type": "number",
+     "value": 10000,
+     "prefix": "₹",
+     "x": 92,
+     "y": 500,
+     "size": 230,
+     "color": "accent",
+     "dur": 1.1,
+     "at": "p2"
+    },
+    {
+     "type": "headline",
+     "lines": [
+      "every month,",
+      [
+       [
+        "for twenty years?",
+        "muted"
+       ]
+      ]
+     ],
+     "x": 96,
+     "y": 650,
+     "size": 66,
+     "line_at": [
+      "p3",
+      "p4"
+     ],
+     "at": "p3"
+    }
+   ]
+  },
+  {
+   "start": "p5",
+   "elements": [
+    {
+     "type": "headline",
+     "lines": [
+      "At 12% a year,",
+      [
+       [
+        "here is how it grows.",
+        "muted"
+       ]
+      ]
+     ],
+     "x": 96,
+     "y": 330,
+     "size": 76,
+     "line_at": [
+      "p5",
+      "p6+0.2"
+     ],
+     "at": "p5"
+    },
+    {
+     "type": "text",
+     "parts": [
+      [
+       "One ring for every year. Area is money.",
+       "muted"
+      ]
+     ],
+     "x": 96,
+     "y": 560,
+     "size": 32,
+     "anchor": "left",
+     "weight": "medium",
+     "anim": "rise",
+     "at": "p7+0.6"
+    }
+   ]
+  },
+  {
+   "start": "p18",
+   "elements": [
+    {
+     "type": "headline",
+     "lines": [
+      "That is compounding.",
+      [
+       [
+        "The last five rings",
+        "muted"
+       ]
+      ],
+      [
+       [
+        "outgrew the first fifteen.",
+        "muted"
+       ]
+      ]
+     ],
+     "x": 96,
+     "y": 330,
+     "size": 70,
+     "line_at": [
+      "p19",
+      "p20",
+      "p21"
+     ],
+     "at": "p18"
+    }
+   ]
+  },
+  {
+   "start": "p23",
+   "elements": [
+    {
+     "type": "headline",
+     "lines": [
+      "Returns aren't",
+      "guaranteed."
+     ],
+     "x": 96,
+     "y": 640,
+     "size": 104,
+     "at": "p23",
+     "stagger": 0.12
+    },
+    {
+     "type": "headline",
+     "lines": [
+      [
+       [
+        "Do your own research.",
+        "muted"
+       ]
+      ]
+     ],
+     "x": 96,
+     "y": 900,
+     "size": 60,
+     "font": "text",
+     "at": "p25"
+    }
+   ]
+  },
+  {
+   "start": "p26",
+   "elements": [
+    {
+     "type": "headline",
+     "lines": [
+      [
+       [
+        "Save this,",
+        "accent"
+       ]
+      ],
+      "start early."
+     ],
+     "x": 96,
+     "y": 620,
+     "size": 132,
+     "line_at": [
+      "p26",
+      "p27"
+     ],
+     "at": "p26"
+    },
+    {
+     "type": "text",
+     "parts": [
+      [
+       "Follow for more money math",
+       "muted"
+      ]
+     ],
+     "x": 96,
+     "y": 1020,
+     "size": 38,
+     "anchor": "left",
+     "weight": "medium",
+     "anim": "rise",
+     "at": "p27+0.5"
+    }
+   ]
+  }
+ ]
+}

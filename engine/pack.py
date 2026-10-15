@@ -41,6 +41,7 @@ DEFAULT_STYLE = dict(
     caption_size=92,
     caption_words=3,                      # words per caption group
     captions=True,
+    tile_crop=None,                       # (x, y, size) square cut of the 1080x1920 frame used as the video-call tile. None = head and shoulders
     card_box=None,                        # (x0, y0, x1, y1) of the info cards. None = under the chin, above the Instagram buttons
 )
 

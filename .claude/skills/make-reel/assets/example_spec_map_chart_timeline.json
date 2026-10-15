@@ -1,0 +1,26 @@
+{"chip":"TEST  ·  NEW ELEMENTS","punch":[["p0","p1.end"]],
+ "scenes":[
+  {"start":"start","elements":[
+    {"type":"text","parts":[["Why","white"],["JAPAN","red"],["?","white"]],"x":540,"y":320,"size":104,"at":"p0"},
+    {"type":"map","x":540,"y":720,"w":1000,"h":620,"at":"p0",
+     "highlight":[{"iso":"JPN","color":"red","at":"p1"},{"iso":["CHN","KOR"],"color":"orange","at":"p3"}],
+     "focus":[{"iso":"JPN","pad":8,"at":"p2"}],
+     "pins":[{"lon":139.7,"lat":35.7,"label":"Tokyo","at":"p3"}]}
+  ]},
+  {"start":"p6","elements":[
+    {"type":"text","parts":[["₹10,000","yellow"],["/month SIP","white"]],"x":540,"y":320,"size":84,"at":"p6"},
+    {"type":"chart","kind":"bar","x":540,"y":760,"w":940,"h":640,"labels":["5y","10y","15y","20y"],"values":[8.2,23,50,99.9],"prefix":"₹","suffix":"L","decimals":0,"colors":{"3":"green"},"at":"p7"}
+  ]},
+  {"start":"p12","elements":[
+    {"type":"text","parts":[["Nifty 50","white"],["growth","cyan"]],"x":540,"y":320,"size":84,"at":"p12"},
+    {"type":"chart","kind":"line","x":540,"y":760,"w":940,"h":620,"labels":["2010","2014","2018","2022","2026"],"values":[5500,8200,10800,18000,26000],"color":"cyan","at":"p13"}
+  ]},
+  {"start":"p20","elements":[
+    {"type":"text","parts":[["Messi's","white"],["career","yellow"]],"x":540,"y":300,"size":84,"at":"p20"},
+    {"type":"timeline","x":160,"y":430,"length":640,"items":[
+      {"date":"2004","text":"Debut for Barcelona","at":"p20"},
+      {"date":"2012","text":"91 goals in a calendar year","at":"p22","color":"yellow"},
+      {"date":"2022","text":"World Cup winner 🏆","at":"p24","color":"green"},
+      {"date":"2023","text":"8th Ballon d'Or","at":"p26"}]}
+  ]}
+ ]}

@@ -384,12 +384,23 @@ class Scene:
 _W = {}
 
 
-def _init(mascot, take_dir, beats):
-    _W["s"] = Scene(mascot, take_dir, beats)
+def _init(mascot, take_dir, beats, crop=None):
+    _W["s"], _W["crop"] = Scene(mascot, take_dir, beats), crop
 
 
 def _one(i):
-    return _W["s"].frame(i / FPS).convert("RGB").tobytes()
+    c = _W["crop"]
+    fr = _W["s"].frame(i / FPS, overlays=c is None)
+    if c:   # (x, y, side, out_side): the mascot-only square for the video-call tile
+        fr = fr.crop((c[0], c[1], c[0] + c[2], c[1] + c[2])).resize((c[3], c[3]), Image.LANCZOS)
+    return fr.convert("RGB").tobytes()
+
+
+def tile_crop(mascot: str, take_dir: str, out_side: int = 540) -> tuple:
+    """Head-and-shoulders square of the mascot frame (STYLE["tile_crop"] = (x, y, size) overrides)."""
+    s = Scene(mascot, take_dir)
+    x, y, side = s.m.style["tile_crop"] or (int(s.m.place[0] - 400), int(s.m.place[1] - (s.feet[1] - s.face[1]) - 528), 800)
+    return (x, max(0, min(FH - side, y)), side, out_side)
 
 
 def loudnorm(audio: str, i=-14.0, tp=-1.5, lra=11.0) -> str:
@@ -406,23 +417,27 @@ def loudnorm(audio: str, i=-14.0, tp=-1.5, lra=11.0) -> str:
         return base
 
 
-def render(mascot: str, take_dir: str, out: str, beats: Optional[list] = None, t0=0.0, t1=None) -> str:
+def render(mascot: str, take_dir: str, out: str, beats: Optional[list] = None, t0=0.0, t1=None, crop=None) -> str:
+    """crop=(x, y, side, out_side) renders just that square, silent: the mascot tile for a video-call style reel."""
     s = Scene(mascot, take_dir, beats)
     t1 = s.dur if t1 is None else t1
     n0, n1 = int(t0 * FPS), int(t1 * FPS)
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{FW}x{FH}",
-           "-r", str(FPS), "-i", "-", "-ss", f"{t0}", "-t", f"{t1 - t0}", "-i", s.audio,
-           "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "medium", "-crf", "17",
-           "-threads", "2", "-pix_fmt", "yuv420p", "-af", loudnorm(s.audio), "-ar", "44100", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", out]
+    size = f"{crop[3]}x{crop[3]}" if crop else f"{FW}x{FH}"
+    audio = ["-an"] if crop else ["-ss", f"{t0}", "-t", f"{t1 - t0}", "-i", s.audio, "-map", "0:v", "-map", "1:a",
+                                 "-af", loudnorm(s.audio), "-ar", "44100", "-c:a", "aac", "-b:a", "192k", "-shortest"]
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", size, "-r", str(FPS), "-i", "-",
+           *audio, "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-threads", "2", "-pix_fmt", "yuv420p",
+           "-movflags", "+faststart", out]
     ff = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     workers = max(1, min(int(os.environ.get("WORKERS", "0")) or 3, 8))   # 3 render processes by default so the laptop stays usable; WORKERS=8 to go faster
-    with Pool(workers, initializer=_init, initargs=(mascot, take_dir, s.beats)) as pool:
+    with Pool(workers, initializer=_init, initargs=(mascot, take_dir, s.beats, crop)) as pool:
         for k, buf in enumerate(pool.imap(_one, range(n0, n1), chunksize=8)):
             ff.stdin.write(buf)
             if k % (FPS * 5) == 0:
                 print(f"  frame {k}/{n1 - n0}", flush=True)
     ff.stdin.close()
-    ff.wait()
+    if ff.wait() != 0:
+        raise SystemExit("ffmpeg failed while encoding the video")
     return out
 
 

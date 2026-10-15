@@ -177,6 +177,13 @@ Captions use your script's spelling with Whisper's timings, and the final mix is
 Rendering uses 3 processes and 2 ffmpeg threads so the laptop stays usable: `WORKERS=8 python make.py ...` for speed.
 The `reel-script` skill writes the script, cards and caption for you from a topic.
 
+### Video-call reels (mascot tile over designed graphics)
+
+The `make-reel` skill builds a reel where the mascot is a small floating tile, like your own tile in a video call, and the
+rest of the screen shows motion graphics designed around the script. Ask Claude Code: *"make a reel about X with amrut"*,
+or by hand: `make.py take NAME --script s.txt`, design with the skill's scripts, then `make.py tile NAME TAKE` and
+`make.py reel NAME TAKE graphics.mp4`.
+
 ### Level up the art
 
 One picture gets you talking. For a mascot that really performs, add more layers to `sprites/`:

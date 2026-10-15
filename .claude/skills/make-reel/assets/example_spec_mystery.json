@@ -1,0 +1,22 @@
+{"chip":"UNSOLVED  ·  1959","theme":"mystery","caption_highlight":"red","visualizer":{"color":"blood"},
+ "scenes":[
+  {"start":"start","elements":[
+    {"type":"text","parts":[["February 2, 1959.","white"]],"x":540,"y":330,"size":64,"anim":"type","at":"p0"},
+    {"type":"text","parts":[["9 hikers.","white"],["0 survivors.","red"]],"x":540,"y":440,"size":72,"anim":"type","at":"p3"},
+    {"type":"emoji","e":"🏔️","x":540,"y":760,"size":260,"anim":"fade","at":"p1"}
+  ]},
+  {"start":"p6","elements":[
+    {"type":"note","text":"Tent cut open FROM THE INSIDE","x":300,"y":420,"w":400,"rotate":-4,"at":"p6"},
+    {"type":"note","text":"No shoes in -30°C","x":790,"y":560,"w":360,"rotate":3,"emoji":"🥾","at":"p8"},
+    {"type":"note","text":"Traces of radiation","x":340,"y":860,"w":380,"rotate":2,"emoji":"☢️","at":"p10"},
+    {"type":"string","points":[[300,330],[790,480],[340,780]],"at":"p11"},
+    {"type":"pill","label":"WHAT HAPPENED?","x":800,"y":1000,"size":34,"bg":"blood","at":"p12"}
+  ]},
+  {"start":"p14","elements":[
+    {"type":"timeline","x":150,"y":360,"length":620,"color":"blood","items":[
+      {"date":"Jan 27","text":"Group leaves Vizhai","at":"p14","color":"white"},
+      {"date":"Feb 1","text":"Last camp on the slope","at":"p16","color":"white"},
+      {"date":"Feb 26","text":"Empty tent found","at":"p18","color":"red"},
+      {"date":"2019","text":"Case reopened","at":"p21","color":"yellow"}]}
+  ]}
+ ]}

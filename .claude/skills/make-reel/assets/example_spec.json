@@ -1,0 +1,61 @@
+{
+  "chip": "SYSTEM DESIGN  ·  SCALING",
+  "theme": "navy",
+  "cta": {"text": "+  FOLLOW for more", "last": 1.8},
+  "punch": [["p0", "p1.end"], ["p4", "p5.end"], ["p9", "p10.end"], ["p12", "p13"], ["p19", "p19.end"], ["p24", "p25.end"]],
+  "face_emoji": [{"at": "p4", "e": "💸"}, {"at": "p9", "e": "🔒"}, {"at": "p14", "e": "⚡"}, {"at": "p19", "e": "🔥"}, {"at": "p24", "e": "🔖"}],
+  "scenes": [
+    {"start": "start", "elements": [
+      {"type": "text", "parts": [["STOP", "red"], ["adding", "white"]], "x": 540, "y": 320, "size": 92, "at": "p0"},
+      {"type": "text", "parts": [["more", "white"], ["DB servers", "yellow"]], "x": 540, "y": 430, "size": 92, "at": "p1"},
+      {"type": "emoji", "e": "🐌", "x": 950, "y": 300, "size": 80, "at": "p3"},
+      {"type": "db", "x": 300, "y": 640, "w": 165, "h": 185, "at": "p1"},
+      {"type": "db", "x": 540, "y": 640, "w": 165, "h": 185, "at": "p1+0.15"},
+      {"type": "db", "x": 780, "y": 640, "w": 165, "h": 185, "at": "p1+0.3"},
+      {"type": "emoji", "e": "💸", "x": 300, "y": 560, "size": 70, "float": true, "at": "p4"},
+      {"type": "emoji", "e": "💸", "x": 540, "y": 560, "size": 70, "float": true, "at": "p4+0.15"},
+      {"type": "emoji", "e": "💸", "x": 780, "y": 560, "size": 70, "float": true, "at": "p4+0.3"},
+      {"type": "strike", "from": [190, 540], "to": [890, 740], "at": "p5"},
+      {"type": "pill", "label": "WRONG BOTTLENECK", "x": 540, "y": 815, "size": 38, "bg": "red", "at": "p5"}
+    ]},
+    {"start": "p6", "elements": [
+      {"type": "counter", "to": 100000, "after": [["users", "white"]], "x": 540, "y": 310, "size": 98, "at": "p6"},
+      {"type": "emoji", "e": "👥", "x": 170, "y": 590, "size": 160, "at": "p6+0.2"},
+      {"type": "flow", "from": [285, 540], "to": [690, 570], "color": "cyan", "rate": 2, "at": "p7", "states": [{"at": "p9", "color": "red", "rate": 3}]},
+      {"type": "flow", "from": [285, 590], "to": [690, 590], "color": "cyan", "rate": 2, "at": "p7+0.1", "states": [{"at": "p9", "color": "red", "rate": 3}]},
+      {"type": "flow", "from": [285, 640], "to": [690, 610], "color": "cyan", "rate": 2, "at": "p7+0.2", "states": [{"at": "p9", "color": "red", "rate": 3}]},
+      {"type": "text", "parts": [["LOGIN", "muted"]], "x": 487, "y": 505, "size": 32, "anim": "slide", "at": "p7"},
+      {"type": "db", "x": 830, "y": 610, "w": 200, "h": 235, "label": "SQL DB", "at": "p6+0.3",
+       "states": [{"at": "p9", "color": "red", "emoji": "🔒", "shake": true}]},
+      {"type": "pill", "label": "LOCKED", "x": 830, "y": 425, "size": 34, "bg": "red", "at": "p9"},
+      {"type": "gauge", "label": "DISK I/O", "x": 600, "y": 830, "w": 520, "to": 100, "at": "p10"},
+      {"type": "emoji", "e": "⚠️", "x": 70, "y": 828, "size": 60, "at": "p11"}
+    ]},
+    {"start": "p12", "elements": [
+      {"type": "text", "parts": [["The", "white"], ["FIX ✅", "green"]], "x": 540, "y": 285, "size": 86, "at": "p12"},
+      {"type": "emoji", "e": "👥", "x": 115, "y": 600, "size": 130, "at": "p12+0.2"},
+      {"type": "db", "x": 960, "y": 600, "w": 160, "h": 200, "color": "green", "at": "p12+0.3"},
+      {"type": "box", "title": "Redis", "sub": "in-memory cache", "emoji": "⚡", "color": "redis", "x": 540, "y": 470, "w": 350, "h": 128, "at": "p14"},
+      {"type": "pill", "label": "< 1 ms", "x": 540, "y": 375, "size": 32, "fg": "dark", "bg": "yellow", "at": "p16"},
+      {"type": "flow", "from": [190, 570], "to": [360, 470], "color": "cyan", "rate": 1.6, "n": 4, "at": "p15"},
+      {"type": "flow", "from": [720, 470], "to": [890, 560], "color": "cyan", "rate": 0.6, "n": 2, "at": "p15+0.2"},
+      {"type": "text", "parts": [["READS", "cyan"]], "x": 250, "y": 465, "size": 26, "anim": "slide", "at": "p15"},
+      {"type": "flow", "from": [190, 630], "to": [360, 730], "color": "orange", "rate": 2.2, "at": "p17"},
+      {"type": "text", "parts": [["WRITES", "orange"]], "x": 250, "y": 735, "size": 26, "anim": "slide", "at": "p17"},
+      {"type": "box", "title": "Queue", "sub": "message queue", "emoji": "📨", "color": "#222228", "outline": "orange", "x": 540, "y": 730, "w": 350, "h": 128, "at": "p18",
+       "states": [{"at": "p19", "title": "Kafka"}]},
+      {"type": "flow", "from": [720, 730], "to": [890, 650], "color": "orange", "rate": 0.8, "n": 4, "square": true, "at": "p21"},
+      {"type": "pill", "label": "steady pace", "x": 860, "y": 805, "size": 26, "fg": "dark", "bg": "orange", "at": "p21"}
+    ]},
+    {"start": "p22", "elements": [
+      {"type": "card", "emoji": "⚡", "key": "Cache", "value": "READ spikes", "color": "cyan", "x": 540, "y": 430, "at": "p22", "value_at": "p22+0.6"},
+      {"type": "card", "emoji": "📨", "key": "Queue", "value": "WRITE spikes", "color": "orange", "x": 540, "y": 650, "at": "p23", "value_at": "p23+0.6"}
+    ]},
+    {"start": "p24", "elements": [
+      {"type": "emoji", "e": "🔖", "x": 540, "y": 360, "size": 150, "bob": true, "at": "p24"},
+      {"type": "text", "parts": [["SAVE", "yellow"], ["THIS", "white"]], "x": 540, "y": 520, "size": 96, "at": "p24"},
+      {"type": "text", "parts": [["for your next", "muted"]], "x": 540, "y": 620, "size": 34, "anim": "slide", "at": "p26"},
+      {"type": "text", "parts": [["System Design Interview 🎯", "cyan"]], "x": 540, "y": 690, "size": 46, "anim": "slide", "at": "p27"}
+    ]}
+  ]
+}

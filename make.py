@@ -14,6 +14,8 @@
   python make.py sheet NAME TAKE_DIR 0.5 2 4.5          stills from a finished take, for quick checks
   python make.py video NAME --script s.txt --cards cards.json   + title / stat / screenshot cards timed to words
   python make.py render NAME TAKE_DIR [--cards c.json]  re-render a finished take (no new voice)
+  python make.py take NAME --script s.txt               voice + word timings only (input for the make-reel skill)
+  python make.py reel NAME TAKE_DIR graphics.mp4        mascot as a floating video-call tile over designed graphics
   python make.py cover NAME TAKE_DIR "APP OR GAME?"     Instagram cover, grid-safe
 
 Everything lands in out/NAME/.
@@ -128,8 +130,9 @@ def cmd_voice(args, quiet=False):
     return path, d
 
 
-def cmd_video(args):
-    from engine import animate, lipsync
+def _take(args):
+    """Steps 1-2 of a video: the voice (or --audio) and the lip sync / word timings. Returns (take dir, script text)."""
+    from engine import lipsync
     m = pack.load(args.name)
     text = read_text(args)
     if args.audio:
@@ -143,13 +146,46 @@ def cmd_video(args):
         print("1/3 voice")
         args._dir = take_dir(args.name, slug(text))
         audio, d = cmd_voice(args, quiet=True)
-    if args.cards:
+    if getattr(args, "cards", None):
         shutil.copy(args.cards, os.path.join(d, "cards.json"))
     print("2/3 lip sync")
     lipsync.analyze(audio, text, d, use_whisper=not args.no_whisper)
+    return d, text
+
+
+def cmd_video(args):
+    from engine import animate
+    d, _ = _take(args)
     print("3/3 render")
     out = os.path.join(d, f"{args.name}.mp4")
     animate.render(args.name, d, out)
+    print(f"\nDone -> {out}")
+
+
+def cmd_take(args):
+    d, _ = _take(args)
+    print(f"\nTake -> {d}   (voice.wav + take.json; no video rendered)")
+
+
+def cmd_tile(args):
+    """The mascot alone as a square clip (no captions, no cards): the video-call tile for `make.py reel`."""
+    from engine import animate
+    out = os.path.join(args.take, "tile.mp4")
+    animate.render(args.name, args.take, out, crop=animate.tile_crop(args.name, args.take, args.size))
+    print(f"\nTile -> {out}")
+
+
+def cmd_reel(args):
+    """Designed full-screen graphics + the mascot as a floating video-call tile -> the finished reel."""
+    import json
+    from engine import animate, reel
+    tile = os.path.join(args.take, "tile.mp4")
+    if not os.path.exists(tile):
+        cmd_tile(argparse.Namespace(name=args.name, take=args.take, size=540))
+    path = args.path or os.path.join(args.take, "tile_path.json")
+    keys = json.load(open(path)) if os.path.exists(path) else None
+    out = args.out or os.path.join(args.take, f"{args.name}-reel.mp4")
+    reel.compose(args.graphics, tile, out, keys=keys, side=args.side)
     print(f"\nDone -> {out}")
 
 
@@ -216,6 +252,15 @@ def main():
     s = sub.add_parser("design-voice"); s.add_argument("name"); s.add_argument("description"); s.add_argument("--text")
     s.set_defaults(fn=cmd_design_voice)
     s = sub.add_parser("save-voice"); s.add_argument("name"); s.add_argument("generated_voice_id"); s.set_defaults(fn=cmd_save_voice)
+    s = sub.add_parser("take"); s.add_argument("name"); s.add_argument("--text"); s.add_argument("--script")
+    s.add_argument("--audio"); s.add_argument("--cards"); s.add_argument("--no-whisper", action="store_true")
+    s.set_defaults(fn=cmd_take)
+    s = sub.add_parser("tile"); s.add_argument("name"); s.add_argument("take"); s.add_argument("--size", type=int, default=540)
+    s.set_defaults(fn=cmd_tile)
+    s = sub.add_parser("reel"); s.add_argument("name"); s.add_argument("take"); s.add_argument("graphics")
+    s.add_argument("--path", help='tile_path.json: [[0, "br"], [5, "tr"], ...] spots tl tr ml mr bl br (default: tile_path.json in the take)')
+    s.add_argument("--side", type=int, default=360, help="tile size on screen in pixels"); s.add_argument("--out")
+    s.set_defaults(fn=cmd_reel)
     s = sub.add_parser("render"); s.add_argument("name"); s.add_argument("take"); s.add_argument("--cards")
     s.set_defaults(fn=cmd_render)
     s = sub.add_parser("cover"); s.add_argument("name"); s.add_argument("take"); s.add_argument("text")
