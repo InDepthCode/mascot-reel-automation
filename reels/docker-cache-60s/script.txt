@@ -1,0 +1,11 @@
+You are reinstalling npm packages on every Docker build. Here is the proof. Same app, same one line change.
+
+Dockerfile one copies everything first, then runs npm install. Six point four seconds.
+
+Dockerfile two copies only the package file, installs, and copies your code last. Zero point nine seconds. Seven times faster.
+
+Be honest. Which Dockerfile is yours? One or two? Tell me in the comments.
+
+Here is why. Docker caches every layer, but once one layer changes, every layer after it rebuilds. Copy your code first, and every edit breaks the cache right before npm install. Copy it last, and your dependencies stay cached.
+
+So order your Dockerfile from least to most changed. Send this to the teammate whose builds take forever.

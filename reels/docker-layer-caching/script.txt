@@ -1,0 +1,21 @@
+Your Docker builds are slow because of one mistake. You are throwing away your cache every time you change a single line of code. In the next three minutes, I will show you how Docker layer caching really works, and how to fix it.
+
+First, how it works. Every RUN, COPY, and ADD instruction in your Dockerfile creates a layer. When you build, Docker checks each instruction from top to bottom. If the instruction and the files it uses have not changed, Docker reuses the layer from cache. If something changed, that layer is rebuilt. And here is the catch. Once one layer changes, every layer after it is rebuilt too. The cache breaks like a chain, from the first change to the very end.
+
+Now the classic mistake. Look at this Node app. The Dockerfile starts from the base image, then copies the whole project, and only then runs npm install. Change one line of code, and that copy layer changes. The cache breaks right there, and npm install runs again from scratch. Every single build.
+
+Quick question. Which one are you guilty of? Copying everything first, or having no dockerignore file? Tell me in the comments.
+
+Fix number one. Order your layers from least to most frequently changed. Copy only the package files first. Run the install. Then copy the rest of your source code. Now when you edit your code, only the last layers rebuild, and your dependencies stay cached.
+
+Fix number two. Add a dockerignore file. Exclude node modules, the git folder, and your logs. Otherwise, a change in a file that never needed to be in the image still breaks your cache.
+
+Fix number three. Never run apt-get update on its own line. Put update and install in the same RUN instruction, so Docker never reuses a stale package list. And pin your base image tag, because a floating tag like latest can change under you, and your whole cache goes with it.
+
+Fix number four. Use a BuildKit cache mount. With a cache mount on your package manager folder, the download cache survives between builds, even when the layer itself has to rebuild.
+
+And what about CI? A fresh runner starts with no cache at all. Use buildx with cache from and cache to, pointing at a registry or the GitHub Actions cache, so your pipeline reuses layers too.
+
+So, to recap. Order layers from stable to volatile. Add a dockerignore file. Combine apt update and install, and pin your base image. Use cache mounts. And cache in CI. Do this, and rebuilds that took minutes can finish in seconds.
+
+Send this to the teammate whose pipeline takes forever.

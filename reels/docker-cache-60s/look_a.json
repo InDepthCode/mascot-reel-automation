@@ -1,0 +1,83 @@
+{
+  "mascot_style": {"background": ["#15161A", "#1C1E24"], "glow": "#FF5A1F"},
+  "keywords": ["npm", "Docker", "Dockerfile", "cache", "cached", "faster", "layer", "seconds", "forever", "proof"],
+  "beats": [
+    {"at": "You", "tile": "tr",
+     "head": ["REINSTALLING", "NPM PACKAGES", {"text": "EVERY BUILD.", "tone": "accent"}],
+     "panel": {"title": "docker build", "lines": [
+       {"t": "cmd", "text": "docker build .", "at": 0.3},
+       {"t": "step", "n": "[3/4]", "text": "COPY . .", "status": "0.1s", "tone": "warn", "at": "every"},
+       {"t": "step", "n": "[4/4]", "text": "RUN npm install", "status": "4.6s", "tone": "bad", "at": "Docker"},
+       {"t": "dim", "text": "added 69 packages in 4s", "at": "build"}]}},
+    {"at": "Here", "tile": "tl",
+     "head": ["SAME APP.", {"text": "SAME CHANGE.", "tone": "accent"}],
+     "panel": {"title": "terminal", "lines": [
+       {"t": "cmd", "text": "echo 'console.log(\"v2\")' > server.js", "at": "Same"},
+       {"t": "dim", "text": "one line changed in server.js", "at": "line"}]}},
+    {"at": "Dockerfile", "tile": "tr",
+     "head": ["DOCKERFILE 1", {"count": [0, 6.4, 1, "s"], "tone": "bad", "size": 250, "dur": 1.4, "at": "Six"}],
+     "panel": {"title": "Dockerfile.bad", "lines": [
+       {"t": "code", "n": 1, "kw": "FROM", "rest": "node:20-alpine", "at": 0.2},
+       {"t": "code", "n": 2, "kw": "WORKDIR", "rest": "/app", "at": 0.4},
+       {"t": "code", "n": 3, "kw": "COPY", "rest": ". .", "at": 0.6, "states": [{"at": "everything", "hl": "bad", "note": "changed"}]},
+       {"t": "code", "n": 4, "kw": "RUN", "rest": "npm install", "at": 0.8, "states": [{"at": "npm", "hl": "warn", "note": "runs again"}]},
+       {"t": "code", "n": 5, "kw": "CMD", "rest": "[\"node\", \"server.js\"]", "at": 1.0}]}},
+    {"at": "Dockerfile", "tile": "tl",
+     "head": ["DOCKERFILE 2", {"count": [0, 0.9, 1, "s"], "tone": "ok", "size": 250, "dur": 1.0, "at": "Zero"}],
+     "panel": {"title": "Dockerfile.good", "lines": [
+       {"t": "code", "n": 1, "kw": "FROM", "rest": "node:20-alpine", "at": 0.2},
+       {"t": "code", "n": 2, "kw": "WORKDIR", "rest": "/app", "at": 0.4},
+       {"t": "code", "n": 3, "kw": "COPY", "rest": "package*.json ./", "at": 0.6, "states": [{"at": "package", "hl": "ok", "note": "cached"}]},
+       {"t": "code", "n": 4, "kw": "RUN", "rest": "npm install", "at": 0.8, "states": [{"at": "installs", "hl": "ok", "note": "cached"}]},
+       {"t": "code", "n": 5, "kw": "COPY", "rest": ". .", "at": 1.0, "states": [{"at": "last", "hl": "warn", "note": "0.1s"}]},
+       {"t": "code", "n": 6, "kw": "CMD", "rest": "[\"node\", \"server.js\"]", "at": 1.2}]}},
+    {"at": "Seven", "tile": "tr", "head_h": 480,
+     "head": [{"text": "7X", "size": 250, "tone": "accent"}, {"text": "FASTER.", "size": 130}],
+     "panel": {"title": "rebuild after a one line change", "lines": [
+       {"t": "step", "n": "1", "text": "COPY . . first", "status": "6.4s", "tone": "bad", "at": 0.1},
+       {"t": "step", "n": "2", "text": "package file first", "status": "0.9s", "tone": "ok", "at": 0.5},
+       {"t": "result", "label": "Speedup", "value": "7.1x", "tone": "ok", "at": 0.9}]}},
+    {"at": "Be", "tile": "tl",
+     "head": ["WHICH ONE", {"text": "IS YOURS?", "tone": "accent"}],
+     "panel": {"title": "comments", "lines": [
+       {"t": "dim", "text": "reply with 1 or 2", "at": "Which"},
+       {"t": "step", "n": "1", "text": "COPY . . first", "status": "", "at": ["One", 1]},
+       {"t": "step", "n": "2", "text": "package file first", "status": "", "at": ["two", 1]}]}},
+    {"at": "Here", "tile": "tr",
+     "head": ["EVERY LAYER", "AFTER IT", {"text": "REBUILDS.", "tone": "bad"}],
+     "panel": {"title": "Dockerfile.bad", "lines": [
+       {"t": "code", "n": 1, "kw": "FROM", "rest": "node:20-alpine", "at": 0.1},
+       {"t": "code", "n": 2, "kw": "WORKDIR", "rest": "/app", "at": 0.2},
+       {"t": "code", "n": 3, "kw": "COPY", "rest": ". .", "at": 0.3, "states": [{"at": ["changes", 1], "hl": "bad", "note": "changed"}]},
+       {"t": "code", "n": 4, "kw": "RUN", "rest": "npm install", "at": 0.4, "states": [{"at": ["every", 2], "hl": "bad", "note": "rebuilt"}]},
+       {"t": "code", "n": 5, "kw": "CMD", "rest": "[\"node\", \"server.js\"]", "at": 0.5, "states": [{"at": "rebuilds", "hl": "bad", "note": "rebuilt"}]}]}},
+    {"at": "Copy", "tile": "tl",
+     "head": ["CODE FIRST", "BREAKS THE", {"text": "CACHE.", "tone": "bad"}],
+     "panel": {"title": "Dockerfile.bad", "lines": [
+       {"t": "code", "n": 1, "kw": "FROM", "rest": "node:20-alpine", "at": 0.0},
+       {"t": "code", "n": 2, "kw": "WORKDIR", "rest": "/app", "at": 0.0},
+       {"t": "code", "n": 3, "kw": "COPY", "rest": ". .", "at": 0.0, "states": [{"at": "first", "hl": "bad", "note": "changed"}]},
+       {"t": "code", "n": 4, "kw": "RUN", "rest": "npm install", "at": 0.0, "states": [{"at": "npm", "hl": "bad", "note": "reinstalls"}]},
+       {"t": "code", "n": 5, "kw": "CMD", "rest": "[\"node\", \"server.js\"]", "at": 0.0}]}},
+    {"at": "Copy", "tile": "tr",
+     "head": ["CODE LAST", "KEEPS DEPS", {"text": "CACHED.", "tone": "ok"}],
+     "panel": {"title": "Dockerfile.good", "lines": [
+       {"t": "code", "n": 1, "kw": "FROM", "rest": "node:20-alpine", "at": 0.0},
+       {"t": "code", "n": 2, "kw": "WORKDIR", "rest": "/app", "at": 0.0},
+       {"t": "code", "n": 3, "kw": "COPY", "rest": "package*.json ./", "at": 0.0, "states": [{"at": "dependencies", "hl": "ok", "note": "cached"}]},
+       {"t": "code", "n": 4, "kw": "RUN", "rest": "npm install", "at": 0.0, "states": [{"at": "dependencies", "hl": "ok", "note": "cached"}]},
+       {"t": "code", "n": 5, "kw": "COPY", "rest": ". .", "at": 0.0, "states": [{"at": "last", "hl": "warn", "note": "0.1s"}]},
+       {"t": "code", "n": 6, "kw": "CMD", "rest": "[\"node\", \"server.js\"]", "at": 0.0}]}},
+    {"at": "So", "tile": "tl",
+     "head": ["LEAST CHANGED", {"text": "FIRST.", "tone": "accent"}],
+     "panel": {"title": "Dockerfile.good", "lines": [
+       {"t": "code", "n": 1, "kw": "FROM", "rest": "node:20-alpine", "at": 0.0, "note": "rarely"},
+       {"t": "code", "n": 2, "kw": "WORKDIR", "rest": "/app", "at": 0.0, "note": "rarely"},
+       {"t": "code", "n": 3, "kw": "COPY", "rest": "package*.json ./", "at": 0.3, "note": "rarely"},
+       {"t": "code", "n": 4, "kw": "RUN", "rest": "npm install", "at": 0.5, "note": "rarely"},
+       {"t": "code", "n": 5, "kw": "COPY", "rest": ". .", "at": "most", "hl": "warn", "note": "every commit"},
+       {"t": "code", "n": 6, "kw": "CMD", "rest": "[\"node\", \"server.js\"]", "at": 0.0}]}},
+    {"at": "Send", "tile": "br", "head_h": 780, "tile_beside": false,
+     "head": ["SEND THIS TO", "THE TEAMMATE", "WHOSE BUILDS", {"text": "TAKE FOREVER.", "tone": "accent"}, {"text": "FOLLOW FOR MORE", "size": 64, "tone": "ink", "y": 1250, "at": "forever"}]}
+  ]
+}
